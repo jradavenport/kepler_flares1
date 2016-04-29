@@ -23,7 +23,7 @@
 \shorttitle{Kepler Flare Catalog}
 \shortauthors{Davenport et al.}
 
-\author{
+\author{have
 	James R. A. Davenport\altaffilmark{1,2,3},
 	Kevin R. Covey\altaffilmark{2},
 	Austin C. Boeck\altaffilmark{2},
@@ -40,12 +40,14 @@
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{abstract}
-Find every flare from every star. Make tools and catalog publicly available.
+Find every flare from every star. here we describe the code used for finding flares and empirically determining flare recovery completeness from every \Kepler light curve. 
+Make tools and catalog publicly available.
 for every star in the \Kepler sample we carry out artificial flare injection tests to estimate the completeness of our sample. These tests may also be useful for other researchers looking for low amplitude signals
 we release the first version of our catalog and the flare injection results.
 this sample contains 2\e{5} flare candidates, from XXXXX unique stars, the largest such sample from a single instrument.
 have looked at one cluster, compared to nearby field, show elevated flare rate for stars at same color
 this sample opens the door for statistical studies of flare rates across stellar populations.
+
 \end{abstract}
 
 
@@ -105,7 +107,7 @@ We have made our entire codebase open source and available online.\footnote{\url
 
 %%%%%%%%%%%%%%%%
 \subsection{Building the Quiescent Light Curve Model}
-
+\label{sec:find1}
 % first do detrend.QtrFlat(), line 999
 Throughout the description of this procedure we will label each step with bold numbers for clarity.
 {\bf (1)} We initially discard any data points having their SAP\_QUALITY flag bits 5, 8, or 12 set. Our light curve modeling approach begins by subtracting long term variations, which are typically due systematic errors in the data. Each light curve file, consisting of either an entire quarter of long cadence data or one month of short cadence data, is smoothed via the {\tt rolling\_median} filter from the Python package {\tt pandas} \citep{pandas}, using a kernel size of 1/100$^{\rm th}$ the size of the light curve segment. Additionally, a minimum smoothing kernel size is set at 10 data points, which corresponds to 10 minutes for short-cadence or 5 hours for long cadence data. With this heavily smoothed light curve we fit a 3$^{\rm rd}$ order polynomial, which we subtract from the original light curve.
@@ -146,6 +148,7 @@ Two examples of flare star light curves we have analyzed. \Kepler SAP\_FLUX is s
 
 %%%%%%%%%%%%%%%%
 \subsection{Flare Detection}
+\label{sec:find2}
 
 % line 1035 of appaloosa
 The model generated above is then subtracted from the original data in this continuous light curve segment. We then cross correlated this model-subtracted light curve with a flare profile, using the analytical flare template defined in \citet{davenport2014b}. The flare template is generated using an amplitude of 1, and a characteristic timescale $t_{1/2}$ of 2 times the cadence, 60 minutes for long cadence data and 2 minutes for short cadence data. By cross correlating the model-subtracted data with a flare filter we are effectively taking a matched filter approach in detecting flares against the noisy data. We note that since the cross correlation tends to smooth the flare events out longer in duration, only flare {\it detection} is performed using the matched filter version of the model-subtracted data, and not flare energy measurements.
@@ -166,6 +169,7 @@ where $y_i$ is the $i$'th flux value of the flare (using the de-trended fluxes),
 
 %%%%%%%%%%%%%%%%%
 \subsection{Determining Flare Energies}
+\label{sec:find3}
 
 The ED's measured above enable us to determine the relative energy for each flare event without having to flux calibrate the \Kepler light curves. As a result the ED's are robust against the observed variability, both systematic and astrophysical. The actual energy of the flare emitted in the \Kepler bandpass (units of ergs) can be determined from the ED (units of seconds) by multiplying by the quiescent luminosity (units of erg s$^{-1}$). 
 
@@ -190,30 +194,28 @@ The Kepler Input Catalog provides ground-based photometry for all available star
 \includegraphics[width=3.5in]{figures/gj1243fake_slc.png}
 \includegraphics[width=3.5in]{figures/gj1243fake_llc.png}
 \caption{
-Results from recovery tests of artificial flares injected in to the \Kepler light curves for the M4 dwarf star GJ 1243 using short cadence (left) and long cadence (right). The binned recovery fraction for 100 artificial flares is plotted (black line) along with a Weiner-filter smoothed version (red dashed line). Recovery fractions of 68\% and 90\% for the smoothed version are given for reference (heavy blue lines), and are saved for each artificial flare test. In the case of the long cadence data the recovery fraction did not reach 90\% for the test within this portion of data.
+Results from recovery tests of artificial flares injected in to the \Kepler light curves for the M4 dwarf star GJ 1243 (KIC 9726699) using short cadence (left) and long cadence (right). The binned recovery fraction for 100 artificial flares is plotted (black line) along with a Weiner-filter smoothed version (red dashed line). Recovery fractions of 68\% and 90\% for the smoothed version are given for reference (heavy blue lines), and are saved for each artificial flare test. In the case of the long cadence data the recovery fraction did not reach 90\% for the test within this portion of data.
 }
 \label{fig:fake1}
 \end{figure*}
 
 
+Each continuous section of light curve, defined in Step 2 of \S\ref{sec:find1} above, has unique properties of both systematic noise and astrophysical variability. The accuracy of our de-trending in each light curve section is naturally dependent on the local photometric noise and variability. Comparing flare rates from both long and short cadence data together requires knowing the flare completeness for both cadences, as the sampling rate strongly affects the smallest detectable flares.
+Flare recovery efficiency therefore varies between light curve segments, and must be determined within each to accurately characterize the true total flare rate for each star. 
 
-recovery of flares is  not perfect, and great challenge in modeling every possible source of astrophysical and systematic noise for our light curve de-trending. this is analogous to the efficiency in recovering transits from \Kepler, which has been robustly tested by recovering artificially injected transits in to the data \citep{christiansen2013}
-flare detection in the short versus long cadence is different due to both the different sampling rate placing limits on recoverable flare duration, and also difference in signal to noise ratio of the two cadences.
-further, noise properties of light curves vary from season to season as the \Kepler spacecraft's quarterly rolls placed stars on different camera chips, and within quarters due to adjustments and errors in the spacecraft pointing. these effects most import for small energy flares
+Along with the variable noise and sampling within each light curve, we cannot analytically propagate the performance and uncertainties of our iterative de-trending and flare finding algorithm. These constraints force us to empirically determine the flare recovery efficiency using artificially injected flares. This is analogous to the work of \citet{christiansen2013}, who robustly tested the efficiency in detecting planetary transits from \Kepler data using artificially injected transits. Unlike \citet{christiansen2013} we do not utilize the pixel-level data, and instead inject flares directly in to the raw SAP\_FLUX light curves.
 
-It is not possible to analytically propagate the uncertainties of our iterative flare finding algorithm, nor the varying signal to noise level of for all times within each light curve. measuring the recovery rate for artificially injected flares provides an empirical constraint on the completeness
 
-%Generate fake flares, insert in to light curves, how well do we recover them?
 
 % line 1039, FakeFlares( )
-generate fake flares using \citet{davenport2014b} empirical model. 100 fake flares within each continuous portion of the light curve, sampled randomly from between 0.5 and 60 minutes for $t_{1/2}$, and 0.1 to 100 times the median photometric error in the section of light curve.
-
-recovered energies are in 20 bins of ED
-
-
-for every true flare recovered we also record the 68 and 90\% artificial flare recovery energies 
+The temporal profile of our artificial flares is the empirical flare model determined in \citet{davenport2014b}. The analytic form of this model (their Equations 1 and 4) describes the flare shape using three free parameters: the impulsive timescale $t_{1/2}$, the flare's peak amplitude, and the time of flare maximum $t_{peak}$. 
+Within each continuous light curve segment we inject 100 fake flares. The $t_{peak}$ times for the artificial flare events are spaced randomly throughout the quiescent, non-flaring portions of each light curve segment. Each set of 100 fake flares have timescales chosen randomly in the range $0.5 \le t_{1/2} \le 60$ minutes, and amplitudes between 0.1 and 100 times the median photometric error of the respective light curve segment. While \citet{davenport2014b} show their empirical flare model can be used to identify and decompose complex, multi-peaked flare events, we only inject classical single-peaked events for our artificial flare tests. The decay phase of the injected flares may partially overlap real or other artificial flares, and as such may create serendipitous complex events. 
 
 
+The light curve segment with added fake flares is then processed using the same iterative de-trending and flare-finding algorithm from \S\ref{sec:find1} and \ref{sec:find2}, respectively. Artificial flares are considered recovered by our code if the flare peak time was contained within the start and stop times of any resulting flare candidates. For this study we do not keep track of how accurately each artificial flare was recovered, either in duration or event energy, but we note this may be an interesting avenue for evaluating and improving future versions of our code.
+
+
+The 100 simulated flare recovery fraction is then computed for each light curve segment. Simulated flares are binned as a function of the event relative energy, using 20 bins of equivalent duration (ED. The locations of these bins were not fixed, and varied between light curve segments due to the simulated flare amplitudes being a range of the local photometric uncertainty. Examples of the recovery fraction for two light curve segments for the M dwarf GJ 1243 (KIC 9726699) are shown in Figure \ref{fig:fake1}. The recovery fraction is then smoothed using a Wiener filter with a kernel of 3 ED bins, and from this smoothed version we estimate the 68\% and 90\% flare recovery ED for each light curve segment. These local ED limits are saved along side each recovered flare for use as completeness limits in later analysis. In cases where the 68\% or 90\% recovery rate is not met, we save a value of -99 for these limits.
 
 
 
@@ -241,7 +243,7 @@ We demonstrate the combined flare rates for the previously studied active M dwar
 
 \begin{figure}[!t]
 \centering
-\includegraphics[width=3.5in]{figures/gj1243_example.png}
+\includegraphics[width=3.5in]{figures/9726699_ffd.png}
 \caption{
 Cumulative flare frequency diagram from all 14 long-cadence quarters and 11 short-cadence months for the active M dwarf GJ 1243 (red lines). The flare rate has been sampled with bins of logarithmic energy, with a width of log E = 0.1. Note the low-energy cutoff for each data file has been set to the average 68\% flare recovery completeness limit. The average flare frequency distribution is computed by taking the mean in each bin for all files above their respective completeness limits (blue line).
 }
@@ -281,6 +283,51 @@ Total number of flares per day per star as a function of color - or the average 
 
 
 
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Comparing to Other Flare Samples}
+
+
+%%%%%%%%%%%%%%%%%
+%\subsection{Manual Validation}
+%Compare how many flares I found from the GJ 1243 master file
+
+
+
+Compare how many flares I found from the GJ 1243 master file
+
+Compare to other studies of bulk flare finding, such as \citep{balona2015a}
+
+
+can i show Lfl/Lkep for stars from my study vs others?
+
+%look at the field vs one cluster (NGC 6811), studied by \citep{meibom2011}
+% http://iopscience.iop.org/article/10.1088/2041-8205/733/1/L9/meta#apjl390631s3
+% http://iopscience.iop.org/2041-8205/733/1/L9/suppdata/apjl390631t1_mrt.txt
+
+
+%\begin{figure}[!t]
+%\centering
+%\includegraphics[width=3.5in]{figures/ngc6811_gyro.png}
+%\includegraphics[width=3.5in]{figures/ngc6811_flare_all.png}
+%\caption{
+%cluster figure, good for comparison
+%}
+%\label{fig:cluster}
+%\end{figure}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Flares across mass and age}
+
+given we have estimates of flare energies, we can do the first examination of flares as a function of age for a range of masses. 
+
+In Figure \ref{fig:rotcolor} we present the flare power as a function of color and rotation period. this space is for the study of magnetochronology, or describing how flare rates evolve as a function of time
+ we use the $(g-i)$ color space in Figure \ref{fig:rotcolor} to differentiate stars, approximately as a function of spectral type or mass, because it has a superior ability to distinguish temperature across the entire main sequence compared with the $(g-r)$ color used in several previous works \citep{covey2007,davenport2014} 
+
+
 \begin{figure*}[!t]
 \centering
 \includegraphics[width=3.25in]{figures/masterplot_lfl_lbol_raw.png}
@@ -291,8 +338,9 @@ $R_{35}$ flare rate as a function of rotation period and stellar color for stars
 \label{fig:rotcolor}
 \end{figure*}
 
-we note we use the $(g-i)$ color space in Figure \ref{fig:rotcolor} to differentiate stars, approximately as a function of spectral type, because it has a superior ability to distinguish temperature across the entire main sequence compared with the $(g-r)$ color used in several previous works \citep{covey2007,davenport2014} 
 
+
+In Figure \ref{fig:ratecolor} we show the flare rate versus rotation period for three bins of $g-i$ color. A power law relationship between flare luminosity and rotation period is seen
 
 
 
@@ -310,59 +358,25 @@ flare energy versus rotation period for three cuts in color (mass) space
 
 
 
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Comparing to Other Work}
+\section{Discussion}
+we have presented the largest catalog of stellar flares every recovered using the \Kepler mission. our approach is the first to empirically characterize the completeness of flare recovery for every light curve.
 
+this dataset enables a new generation of stellar population analysis, examining a fundamental property of flare rates over stellar age for a range of stellar masses. the advent of tens of thousands of rotation periods has ushered in a new era of astrophysics for gyrochronology. we expect our ensemble study of flare energies to provide a new peek in to the magnetic lives of stars.
 
-%%%%%%%%%%%%%%%%%
-\subsection{Manual Validation}
-Compare how many flares I found from the GJ 1243 master file
+detailed studies about flare morphology also await, such as discussed in \citet{davenport2014b} and \citet{balona2015}. specifically we are interested in learning if the decay phases of flares follows a truly universal pattern, or if it depends on stellar properties such as surface temperature and gravity.  also interested in the complex flare morpholgoy, as discussed by \citet{davenport2015c}
 
+in this study we have preferred the total flare power as the metric, since it is more robust against choices of flare start/stop and duration, etc. however, we have also shown how to combine the short and long cadence data to get estimates of the flare energy distribution for single stars. follow-up work will examine the slope of this distribution versus stellar mass and age, and how universal it really is. will be important for setting both the rate of the largest super flares, as well as the smallest energy flares that could affect the stellar atmosphere.
 
-\begin{figure}[!t]
-\centering
-%\includegraphics[width=3.5in]{gj1243_example.png}
-\caption{
-Portion of light curve with FBEYE validation.
-}
-\label{fig:comp1}
-\end{figure}
+future studies include comparison of flare power to other more traditional indicators of magnetic activity, such as chromosphereic emission. this sample also big enough to search for changes in the flare power over the \Kepler mission lifetime, 4 years, which is enough to see (in the case of the Sun) an order of magnitude change in flare rates
 
 
 
 %%%%%%%%%%%%%%%%%
-\subsection{Other Studies}
-Compare how many flares I found from the GJ 1243 master file
-
-Compare to other studies of bulk flare finding, such as \citep{balona2015a}
-
-
-look at the field vs one cluster (NGC 6811), studied by \citep{meibom2011}
-% http://iopscience.iop.org/article/10.1088/2041-8205/733/1/L9/meta#apjl390631s3
-% http://iopscience.iop.org/2041-8205/733/1/L9/suppdata/apjl390631t1_mrt.txt
-
-
-\begin{figure}[!t]
-\centering
-\includegraphics[width=3.5in]{figures/ngc6811_gyro.png}
-\includegraphics[width=3.5in]{figures/ngc6811_flare_all.png}
-\caption{
-cluster figure, good for comparison
-}
-\label{fig:cluster}
-\end{figure}
-
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Summary}
-
-
-
-%%%%%%%%%%%%%%%%%
-\acknowledgments
+%\acknowledgments
+\section*{Acknowledgements}
 JRAD is supported by an NSF Astronomy and Astrophysics Postdoctoral Fellowship under award AST-1501418.
+
 Kepler was competitively selected as the tenth Discovery mission. Funding for this mission is provided by NASAÕs Science Mission Directorate.
 
 We thank D. Foreman-Mackey and D. Hogg for making their various light curve de-trending algorithms publicly available, and for their extensive discussions on using statistics in astrophysics.
